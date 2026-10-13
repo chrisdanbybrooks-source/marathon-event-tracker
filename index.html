@@ -1,0 +1,5093 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marathon Event Manager</title>
+    <style>
+        body {
+            font-family: "Segoe UI", system-ui, sans-serif;
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(180deg,
+                    #f8fafc 0%,
+                    #eef2f7 100%);
+        }
+
+        section {
+            background: white;
+            padding: 24px;
+            margin-bottom: 20px;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        h2 {
+            color: #2563eb;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .collapsible {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+
+        .collapsible summary {
+            cursor: pointer;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2563eb;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            list-style: none;
+        }
+
+        .collapsible summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .collapsible summary::after {
+            content: "▼";
+            float: right;
+            font-size: 0.9rem;
+            transition: transform 0.2s ease;
+        }
+
+        .collapsible[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            background: white;
+            padding: 24px;
+            margin-top: 12px;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-wrapper {
+            width: 220px;
+            height: 220px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .distance-chart-wrapper {
+            height: 250px;
+            width: 100%;
+            position: relative;
+        }
+
+        .distance-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .checkpoint-marker {
+            background: transparent;
+            border: none;
+        }
+
+        .checkpoint-marker .badge {
+            background: #2563eb;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            border: 2px solid white;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .checkpoint-marker .marathon {
+            background: #2563eb;
+        }
+
+        .checkpoint-marker .major {
+            background: #16a34a;
+        }
+
+        .checkpoint-marker .ultra {
+            background: #7c3aed;
+        }
+
+        .leaflet-marker-icon {
+            background: transparent !important;
+        }
+
+        /* ========================================
+Navigation Toolbar
+======================================== */
+        #navigationBar {
+            position: sticky;
+            top: 8px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin: 0 auto 24px auto;
+            padding: 12px 0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        .nav-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+
+        .nav-row button {
+            width: 100%;
+            max-width: none;
+        }
+
+        /* Navigation buttons */
+        .nav-row button {
+            width: 100%;
+            max-width: none;
+        }
+
+        .upload-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #2563eb;
+            color: white;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        .upload-button:hover {
+            background: #1d4ed8;
+        }
+
+        #navigationBar button {
+            height: 56px;
+            min-width: 0;
+            margin: 0 !important;
+            padding: 14px 20px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            font-weight: 600;
+            border: 1px solid #dbeafe;
+            border-radius: 14px;
+            background: white;
+            color: #1e293b;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                background 0.2s ease;
+        }
+
+        #navigationBar button:hover {
+            background: #eff6ff;
+            transform: translateY(-2px);
+            box-shadow:
+                0 8px 20px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Today button */
+        #navigationBar button[onclick="jumpToToday()"] {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+
+        #navigationBar button[onclick="jumpToToday()"]:hover {
+            background: #15803d;
+        }
+
+        /* Collapse button */
+        #navigationBar button[onclick="collapseAllSections()"] {
+            background: #64748b;
+            color: white;
+            border-color: #64748b;
+        }
+
+        #navigationBar button[onclick="collapseAllSections()"]:hover {
+            background: #475569;
+        }
+
+        /* Tablet */
+        @media (max-width: 1200px) {
+            .nav-row {
+                gap: 12px;
+            }
+
+            #navigationBar button {
+                font-size: 1rem;
+                height: 52px;
+            }
+        }
+
+        /* ========================================
+Mobile Layout
+======================================== */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+                margin: 12px auto;
+            }
+
+            /* Hero */
+            .hero {
+                padding: 24px 16px;
+                margin-bottom: 20px;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+                line-height: 1.2;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .version-badge {
+                font-size: 0.75rem;
+            }
+
+            /* Navigation */
+            #navigationBar {
+                position: static;
+                gap: 10px;
+            }
+
+            .nav-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            #navigationBar button {
+                width: 100%;
+                height: 52px;
+                font-size: 1rem;
+            }
+
+            /* Current Event */
+            .current-event-metrics {
+                flex-direction: column;
+            }
+
+            /* Analytics */
+            .analytics-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-wrapper {
+                width: 180px;
+                height: 180px;
+            }
+
+            /* General cards */
+            section,
+            .current-event,
+            .collapsible-content {
+                padding: 16px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .card h3 {
+                margin: 0 0 16px 0;
+                font-size: 1.3rem;
+                font-weight: 700;
+                color: #2563eb;
+            }
+
+            /* Forms */
+            input,
+            select,
+            textarea,
+            button {
+                font-size: 16px;
+            }
+
+            /* Dashboard cards */
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            /* Last 10 Days dashboard */
+            #weeklyDashboard {
+                overflow-x: auto;
+            }
+
+            #weeklyDashboard table {
+                min-width: 600px;
+            }
+
+            /* Route map */
+            #routeMap {
+                height: 300px !important;
+            }
+
+            /* Collapsible section headings */
+            .collapsible summary {
+                font-size: 1.2rem;
+                padding: 14px 16px;
+            }
+
+            /* Readiness score */
+            #adherenceValue {
+                font-size: 2.4rem;
+            }
+        }
+
+        .current-event {
+            background:
+                linear-gradient(135deg,
+                    #eff6ff,
+                    #dbeafe);
+            padding: 16px;
+            margin-bottom: 20px;
+            border-radius: 18px;
+            border: 1px solid #bfdbfe;
+            box-shadow:
+                0 8px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        /* ========================================
+Hero Banner
+======================================== */
+        .hero {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            padding: 28px 18px;
+            margin: 0 0 24px 0;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.20);
+        }
+
+        .hero h1 {
+            color: white;
+            margin: 0;
+            font-size: 2.8rem;
+            font-weight: 700;
+        }
+
+        .hero p {
+            margin-top: 10px;
+            margin-bottom: 0;
+            color: white;
+            opacity: 0.95;
+            font-size: 1.15rem;
+            font-weight: 500;
+        }
+
+        .version-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.20);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .analytics-dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        .card-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Mobile layout */
+        @media (max-width: 768px) {
+            .analytics-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 12px;
+                margin: 12px auto;
+            }
+
+            .current-event-metrics {
+                flex-direction: column;
+            }
+
+            .hero {
+                padding: 24px 16px;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .card h3 {
+                margin: 0 0 16px 0;
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: #2563eb;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            section,
+            .current-event {
+                padding: 16px;
+            }
+
+            input,
+            select,
+            textarea,
+            button {
+                font-size: 16px;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .collapsible summary {
+            color: #2563eb !important;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body id="top">
+    <div class="hero">
+        <h1>
+            🏃 Marathon Event Manager
+        </h1>
+        <p>
+            Plan • Train • Race • Review
+        </p>
+        <div class="version-badge">
+            v2.4
+        </div>
+    </div>
+    <div id="navigationBar">
+        <div class="nav-row">
+            <button type="button"
+                onclick="document.getElementById('currentEventSection').scrollIntoView({behavior:'smooth'});">
+                🏠 Current Event
+            </button>
+            <button type="button"
+                onclick="document.getElementById('dashboardSection').scrollIntoView({behavior:'smooth'});">
+                📅 Last 10 Days
+            </button>
+            <button type="button" onclick="
+const route=document.getElementById('routeSection');
+route.open=true;
+route.scrollIntoView({behavior:'smooth'});
+">
+                🗺️ Route
+            </button>
+            <button type="button" onclick="
+const history=document.getElementById('historySection');
+history.open=true;
+history.scrollIntoView({behavior:'smooth'});
+">
+                📋 Activities
+            </button>
+            <button type="button" onclick="
+const analytics=document.getElementById('analyticsSection');
+analytics.open=true;
+analytics.scrollIntoView({behavior:'smooth'});
+">
+                📊 Analytics
+            </button>
+            <button type="button" onclick="
+const training=document.getElementById('trainingSection');
+training.open=true;
+training.scrollIntoView({behavior:'smooth'});
+">
+                🏋️ Activity Admin
+            </button>
+        </div>
+        <div class="nav-row">
+            <button type="button" onclick="
+const race=document.getElementById('raceSection');
+race.open=true;
+race.scrollIntoView({behavior:'smooth'});
+">
+                🏁 Race Outcome
+            </button>
+            <button type="button" onclick="
+const review=document.getElementById('reviewSection');
+review.open=true;
+review.scrollIntoView({behavior:'smooth'});
+">
+                📝 Review Race
+            </button>
+            <button type="button" onclick="
+const archive=document.getElementById('archiveSection');
+archive.open=true;
+archive.scrollIntoView({behavior:'smooth'});
+">
+                📦 Archive
+            </button>
+            <button type="button" onclick="
+const eventSetup=document.getElementById('eventSection');
+eventSetup.open=true;
+eventSetup.scrollIntoView({behavior:'smooth'});
+">
+                ⚙️ Event Setup
+            </button>
+            <button type="button" style="background:#16a34a;" onclick="jumpToToday()">
+                📍 Today
+            </button>
+            <button type="button" style="background:#64748b;" onclick="collapseAllSections()">
+                ⬆️ Collapse
+            </button>
+        </div>
+    </div>
+    <div id="currentEventSection">
+        <div id="currentEventSummary"></div>
+    </div>
+    <section id="dashboardSection">
+        <h2>My Last 10 Days</h2>
+        <div id="weeklyDashboard">
+        </div>
+        <div style="
+margin-top:20px;
+text-align:right;
+">
+            <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('top')
+.scrollIntoView({
+behavior:'smooth'
+});
+">
+                ↑ Top
+            </button>
+        </div>
+    </section>
+    <details id="routeSection" class="collapsible">
+        <summary>
+            🗺 Route Information
+        </summary>
+        <div class="collapsible-content">
+            <label>GPX Route File</label>
+            <input type="file" id="routeGpxFile" accept=".gpx" onchange="displayRoute()" />
+            <label>Route Notes</label>
+            <textarea id="routeNotes" rows="3"></textarea>
+            <div id="routeActions" style="margin-top:15px;"></div>
+            <div id="routePreview" style="
+margin-top:15px;
+"></div>
+            <div style="
+margin-top:20px;
+text-align:right;
+">
+                <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('routeSection').open = false;
+document.getElementById('top').scrollIntoView({
+behavior:'smooth'
+});
+">
+                    ↑ Top
+                </button>
+            </div>
+        </div>
+    </details>
+    <details id="analyticsSection" class="collapsible">
+        <summary>
+            📊 Training Analytics
+        </summary>
+        <div class="collapsible-content">
+            <div class="analytics-dashboard">
+                <div class="card">
+                    <h3>Training Adherence</h3>
+                    <div id="adherenceValue">-</div>
+                    <div class="chart-wrapper">
+                        <canvas id="adherenceChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Status Breakdown</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div id="statusSummary"></div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:20px;">
+                <h3>
+                    🏃 Marathon Readiness
+                </h3>
+                <div id="readinessScoreCard">
+                    Calculating...
+                </div>
+            </div>
+            <div class="card" style="margin-top:20px;">
+                <h3>
+                    Weekly Target vs Actual Distance
+                </h3>
+                <div class="distance-chart-wrapper">
+                    <canvas id="distanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </details>
+    <details id="historySection" class="collapsible">
+        <summary>
+            📋 My Activities
+            <span id="activityCount" class="activity-count" role="status" aria-live="polite" aria-atomic="true">
+            </span>
+        </summary>
+        <div class="collapsible-content">
+            <div id="activityHistory">
+            </div>
+            <div style="
+margin-top:20px;
+text-align:right;
+">
+                <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('historySection').open = false;
+document.getElementById('top').scrollIntoView({
+behavior:'smooth'
+});
+">
+                    ↑ Top
+                </button>
+            </div>
+        </div>
+    </details>
+    <details id="trainingSection" class="collapsible">
+        <summary>
+            🏋️ Activity Admin
+        </summary>
+        <div class="collapsible-content">
+            <form id="activityForm">
+                <label>Activity Date</label>
+                <input type="date" id="activityDate">
+                <label>Activity Type</label>
+                <select id="workoutType" onchange="toggleRunFields()">
+                    <option value="Cross Train">Cross Train</option>
+                    <option value="Easy Run">Easy Run</option>
+                    <option value="Long Run">Long Run</option>
+                    <option value="PT Gym Session">PT Gym Session</option>
+                    <option value="RACE DAY">RACE DAY</option>
+                    <option value="Race Pace Run">Race Pace Run</option>
+                    <option value="Recovery Run">Recovery Run</option>
+                    <option value="Rest">Rest</option>
+                    <option value="Tempo Run">Tempo Run</option>
+                    <option value="Walk">Walk</option>
+                    <option value="Walk/Recovery">Walk/Recovery</option>
+                </select>
+                <label>Detail</label>
+                <input type="text" id="detail"
+                    placeholder="e.g. Middlewood Way, Bike 18km, Intervals, Stockport Parkrun">
+                <div id="runFields">
+                    <label>Target Distance (km)</label>
+                    <input type="number" id="targetDistance" step="0.1">
+                    <label>Actual Distance (km)</label>
+                    <input type="number" id="actualDistance" step="0.1">
+                </div>
+                <label>Status</label>
+                <select id="completed">
+                    <option value="Planned" selected>
+                        Planned
+                    </option>
+                    <option value="Done">
+                        Done
+                    </option>
+                    <option value="Missed">
+                        Missed
+                    </option>
+                </select>
+                <label>Comments</label>
+                <textarea id="comments" rows="3"></textarea>
+                <div style="
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-top:15px;
+">
+                    <button type="button" onclick="saveActivity()" style="width:auto;">
+                        Save Activity
+                    </button>
+                    <label for="activityImport" class="upload-button">
+                        Import Activities
+                    </label>
+                    <input type="file" id="activityImport" accept=".csv" onchange="importActivities()"
+                        style="display:none;">
+                    <button type="button" onclick="clearActivities()" style="
+width:auto;
+background:#d83b01;
+">
+                        Delete All Activities
+                    </button>
+                    <button id="cancelEditBtn" type="button" onclick="cancelEdit()" style="
+display:none;
+width:auto;
+background:#64748b;
+">
+                        Cancel Edit
+                    </button>
+                </div>
+            </form>
+            <div style="
+margin-top:20px;
+text-align:right;
+">
+                <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('top')
+.scrollIntoView({
+behavior:'smooth'
+});
+">
+                    ↑ Top
+                </button>
+            </div>
+        </div>
+    </details>
+    <details id="raceSection" class="collapsible">
+        <summary>
+            🏁 Race Outcome
+        </summary>
+        <div class="collapsible-content">
+            <label>Finished?</label>
+            <select id="raceCompleted">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select>
+            <label>Official Time</label>
+            <input type="text" id="officialTime" placeholder="24:18:36">
+            <label>Position (optional)</label>
+            <input type="number" id="position">
+            <label>Field Size (optional)</label>
+            <input type="number" id="fieldSize">
+            <label>Race Notes</label>
+            <textarea id="raceNotes" rows="4"></textarea>
+            <button type="button" onclick="saveRaceOutcome()">
+                Save Race Outcome
+            </button>
+            <div id="raceSummary" style="margin-top:15px;">
+            </div>
+            <div style="
+margin-top:20px;
+text-align:right;
+">
+                <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('top')
+.scrollIntoView({
+behavior:'smooth'
+});
+">
+                    ↑ Top
+                </button>
+            </div>
+        </div>
+    </details>
+    <details id="reviewSection" class="collapsible">
+        <summary>
+            📝 Post-Race Review
+        </summary>
+        <div class="collapsible-content">
+            <label>What Went Well?</label>
+            <textarea id="whatWentWell" rows="4"></textarea>
+            <label>What Went Badly?</label>
+            <textarea id="whatWentBadly" rows="4"></textarea>
+            <label>Lessons Learned</label>
+            <textarea id="lessonsLearned" rows="4"></textarea>
+            <label>What Would I Change Next Time?</label>
+            <textarea id="futureImprovements" rows="4"></textarea>
+            <button type="button" onclick="saveReview()">
+                Save Review
+            </button>
+            <div id="reviewSummary" style="margin-top:15px;">
+            </div>
+            <div style="
+margin-top:20px;
+text-align:right;
+">
+                <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('top')
+.scrollIntoView({
+behavior:'smooth'
+});
+">
+                    ↑ Top
+                </button>
+            </div>
+        </div>
+    </details>
+
+    <details id="archiveSection" class="collapsible">
+        <summary>
+            📦 Event Archive
+        </summary>
+        <div class="collapsible-content">
+            <h3>Import Event</h3>
+            <button type="button" onclick="document.getElementById('importFile').click()">
+                Select JSON File
+            </button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importEvent()">
+            <button type="button" onclick="archiveCurrentEvent()">
+                Archive Current Event
+            </button>
+            <div id="archiveList">
+            </div>
+            <div id="archiveDetail" style="margin-top:20px;">
+            </div>
+            <div style="
+margin-top:20px;
+text-align:right;
+">
+                <button type="button" style="
+width:auto;
+background:#64748b;
+" onclick="
+document.getElementById('archiveSection').open = false;
+document.getElementById('top').scrollIntoView({
+behavior:'smooth'
+});
+">
+                    ↑ Top
+                </button>
+            </div>
+        </div>
+    </details>
+    <details id="eventSection" class="collapsible">
+        <summary>
+            ⚙ Event Setup
+        </summary>
+        <div class="collapsible-content">
+            <h2>Event Details</h2>
+            <label>Event Name</label>
+            <input type="text" id="eventName">
+            <label>Marathon Type</label>
+            <select id="marathonType">
+                <option>Marathon</option>
+                <option>Ultra Marathon</option>
+            </select>
+            <label>Event Date</label>
+            <input type="date" id="eventDate">
+            <label>Goal Time</label>
+            <input type="time" id="goalTime">
+            <label>Event Website</label>
+            <input type="url" id="websiteUrl">
+            <label>GPX Route URL</label>
+            <input type="url" id="gpxUrl">
+            <button type="button" onclick="saveEvent()">
+                Save Event
+            </button>
+        </div>
+    </details>
+    <script>
+        /*
+====================================================
+MARATHON EVENT MANAGER
+ 
+Version History
+====================================================
+ 
+v2.4 DEV
+---------
+In Progress
+ 
+Phase 1 - Foundation
+✓ Created v2.4 development branch
+✓ Added application version badge
+✓ Navigation toolbar stabilised
+✓ Navigation CSS cleaned and consolidated
+✓ Removed hidden/invalid CSS characters
+✓ Standardised button layout using CSS Grid
+✓ Reduced navigation button height for improved appearance
+✓ Browser compatibility verified in Finder and Edge
+ 
+Planned
+□ Current Event dashboard enhancement
+□ Activity filtering and search
+□ Personal Best summary card
+□ Full Event Backup / Restore
+□ Readiness score enhancements
+□ Mobile optimisation review
+ 
+----------------------------------------------------
+ 
+v2.3
+---------
+✓ Navigation redesign
+✓ Dashboard-style navigation toolbar
+✓ Improved spacing and visual hierarchy
+✓ Sticky navigation behaviour
+✓ Navigation troubleshooting and CSS cleanup
+✓ Hero section refinements
+ 
+----------------------------------------------------
+ 
+Future Ideas
+---------
+□ Calendar view
+□ Training plan templates
+□ Pace calculator
+□ Route statistics
+□ Event comparison dashboard
+□ Multi-event tracking
+ 
+====================================================
+*/
+        let editingActivityId = null;
+        let lastEditedActivityId = null;
+        let originalActivitySnapshot = null;
+        function parseLocalDate(dateString) {
+            if (!dateString) {
+                return null;
+            }
+            const [year, month, day] =
+                dateString.split("-").map(Number);
+            return new Date(
+                year,
+                month - 1,
+                day
+            );
+        }
+        function getLocalDateString() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1)
+                .padStart(2, "0")
+                }-${String(now.getDate())
+                    .padStart(2, "0")
+                }`;
+        }
+        const activityIcons = {
+            "Cross Train": "🚴",
+            "Easy Run": "🏃",
+            "Long Run": "🏃",
+            "PT Gym Session": "💪",
+            "RACE DAY": "🏁",
+            "Race Pace Run": "⚡",
+            "Recovery Run": "🏃",
+            "Rest": "😴",
+            "Tempo Run": "🔥",
+            "Walk": "🚶",
+            "Walk/Recovery": "🚶"
+        };
+        function jumpToToday() {
+            const history =
+                document.getElementById(
+                    "historySection"
+                );
+            history.open = true;
+
+            const todayActivity =
+                document.querySelector(
+                    '[data-today="true"]'
+                );
+
+            if (todayActivity) {
+
+                todayActivity.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+
+            } else {
+
+                history.scrollIntoView({
+                    behavior: "smooth"
+                });
+
+                alert(
+                    "No activity exists for today."
+                );
+
+            }
+
+        }
+        function viewArchive(index) {
+
+            const archive =
+                JSON.parse(
+                    localStorage.getItem(
+                        "eventArchive"
+                    )
+                ) || [];
+
+            const item =
+                archive[index];
+
+            document.getElementById(
+                "archiveDetail"
+            ).innerHTML = `
+
+<div class="card">
+ 
+<h3>
+${item.event?.eventName || "Unknown Event"}
+</h3>
+ 
+<p>
+<strong>Type:</strong>
+${item.event?.marathonType || "-"}
+</p>
+ 
+<p>
+<strong>Date:</strong>
+${item.event?.eventDate || "-"}
+</p>
+ 
+<p>
+<strong>Goal Time:</strong>
+${item.event?.goalTime || "-"}
+</p>
+ 
+<p>
+<strong>Official Time:</strong>
+${item.raceOutcome?.officialTime || "-"}
+</p>
+ 
+<p>
+<strong>Completed:</strong>
+${item.raceOutcome?.completed || "-"}
+</p>
+ 
+<hr>
+ 
+<h4>
+Route
+</h4>
+ 
+<p>
+${item.route?.gpxUrl || "None"}
+</p>
+ 
+<hr>
+ 
+<h4>
+Training Summary
+</h4>
+ 
+<p>
+Activities:
+${item.activities?.length || 0}
+</p>
+ 
+<hr>
+ 
+<h4>
+What Went Well
+</h4>
+ 
+<p>
+${item.review?.whatWentWell || ""}
+</p>
+ 
+<h4>
+What Went Badly
+</h4>
+ 
+<p>
+${item.review?.whatWentBadly || ""}
+</p>
+ 
+<h4>
+Lessons Learned
+</h4>
+ 
+<p>
+${item.review?.lessonsLearned || ""}
+</p>
+ 
+<h4>
+Future Improvements
+</h4>
+ 
+<p>
+${item.review?.futureImprovements || ""}
+</p>
+ 
+</div>
+ 
+`;
+
+        }
+        function buildProgressRow(label, percentage) {
+            return `
+<tr>
+<td style="
+width:140px;
+padding:6px 0;
+font-weight:600;
+color:#2563eb;
+">
+${label}
+</td>
+ 
+<td style="padding:0 12px;">
+<div style="
+width:100%;
+height:12px;
+background:#e5e7eb;
+border-radius:999px;
+overflow:hidden;
+">
+<div style="
+width:${percentage}%;
+height:100%;
+background:#3b6ee3;
+border-radius:999px;
+transition:width .3s ease;
+"></div>
+</div>
+</td>
+ 
+<td style="
+width:60px;
+text-align:right;
+font-weight:600;
+color:#2563eb;
+white-space:nowrap;
+">
+${percentage}%
+</td>
+</tr>
+`;
+        }
+        function getReadinessLevel(score) {
+
+            if (score >= 90) {
+
+                return {
+                    label: "🟢 Race Ready",
+                    colour: "#22c55e"
+                };
+
+            }
+
+            if (score >= 75) {
+
+                return {
+                    label: "🟡 On Track",
+                    colour: "#facc15"
+                };
+
+            }
+
+            if (score >= 60) {
+
+                return {
+                    label: "🟠 Building Fitness",
+                    colour: "#f97316"
+                };
+
+            }
+
+            return {
+                label: "🔴 Behind Plan",
+                colour: "#ef4444"
+            };
+
+        }
+        function displayReadinessScore() {
+
+            const readiness = calculateReadinessScore();
+            const level = getReadinessLevel(readiness.overallScore);
+
+            document.getElementById(
+                "readinessScoreCard"
+            ).innerHTML = `
+ 
+<div style="
+max-width:900px;
+margin:0 auto;
+">
+ 
+<div style="
+display:flex;
+justify-content:center;
+align-items:center;
+gap:12px;
+margin-bottom:24px;
+">
+ 
+<span style="
+font-size:4rem;
+font-weight:700;
+color:${level.colour};
+line-height:1;
+">
+${readiness.overallScore}
+</span>
+ 
+<span style="
+font-size:1.6rem;
+font-weight:600;
+color:${level.colour};
+">
+${level.label}
+</span>
+ 
+</div>
+ 
+<table style="
+width:100%;
+border-collapse:separate;
+border-spacing:0 12px;
+">
+ 
+${buildProgressRow(
+                "Adherence",
+                readiness.adherence.percentage
+            )}
+ 
+${buildProgressRow(
+                "Volume",
+                readiness.volume.percentage
+            )}
+ 
+${buildProgressRow(
+                "Long Runs",
+                readiness.longRuns.percentage
+            )}
+ 
+${buildProgressRow(
+                "Consistency",
+                readiness.consistency.percentage
+            )}
+ 
+</table>
+ 
+</div>
+ 
+`;
+        }
+        function createEmptyReadinessState(status) {
+
+            return {
+
+                overallScore: 0,
+
+                status,
+
+                adherence: {
+                    score: 0,
+                    maxScore: 30,
+                    percentage: 0
+                },
+
+                volume: {
+                    score: 0,
+                    maxScore: 30,
+                    targetKm: 0,
+                    actualKm: 0,
+                    percentage: 0
+                },
+
+                longRuns: {
+                    score: 0,
+                    maxScore: 25,
+                    planned: 0,
+                    completed: 0,
+                    percentage: 0
+                },
+
+                consistency: {
+                    score: 0,
+                    maxScore: 15,
+                    activeWeeks: 0,
+                    totalWeeks: 0,
+                    percentage: 0
+                }
+
+            };
+
+        }
+        function calculateReadinessScore() {
+            const activities =
+                getCurrentActivities();
+            if (activities.length === 0) {
+                return createEmptyReadinessState(
+                    "No Training Data"
+                );
+            }
+            const runningTypes = [
+                "Easy Run",
+                "Long Run",
+                "Race Pace Run",
+                "Recovery Run",
+                "Tempo Run",
+                "RACE DAY"
+            ];
+
+            const pastActivities =
+                activities.filter(activity => {
+
+                    if (!activity.date) {
+                        return false;
+                    }
+
+                    return (
+                        parseLocalDate(activity.date) <=
+                        new Date()
+                    );
+
+                });
+
+            //
+            // Adherence (30)
+            //
+
+            if (pastActivities.length === 0) {
+
+                return createEmptyReadinessState(
+                    "Training Not Started"
+                );
+
+            }
+            const done =
+                pastActivities.filter(
+                    a => a.completed === "Done"
+                ).length;
+
+            const missed =
+                pastActivities.filter(
+                    a => a.completed === "Missed"
+                ).length;
+
+            const adherencePercentage =
+                (done + missed) > 0
+                    ? Math.round(
+                        (done /
+                            (done + missed)) * 100
+                    )
+                    : 0;
+
+            const adherenceScore =
+                Math.round(
+                    (adherencePercentage / 100) * 30
+                );
+
+            //
+            // Volume (30)
+            //
+
+            const runActivities =
+                pastActivities.filter(
+                    activity =>
+                        runningTypes.includes(
+                            activity.type
+                        )
+                );
+
+            const targetKm =
+                runActivities.reduce(
+                    (total, activity) =>
+                        total +
+                        (parseFloat(
+                            activity.targetDistance
+                        ) || 0),
+                    0
+                );
+
+            const actualKm =
+                runActivities.reduce(
+                    (total, activity) =>
+                        total +
+                        (parseFloat(
+                            activity.actualDistance
+                        ) || 0),
+                    0
+                );
+
+            const volumePercentage =
+                targetKm > 0
+                    ? Math.min(
+                        100,
+                        Math.round(
+                            (actualKm / targetKm) * 100
+                        )
+                    )
+                    : 0;
+
+            const volumeScore =
+                Math.round(
+                    (volumePercentage / 100) * 30
+                );
+
+            //
+            // Long Runs (25)
+            //
+
+            const plannedLongRuns =
+                pastActivities.filter(
+                    activity =>
+                        activity.type ===
+                        "Long Run"
+                ).length;
+
+            const completedLongRuns =
+                pastActivities.filter(
+                    activity =>
+                        activity.type ===
+                        "Long Run" &&
+                        activity.completed === "Done"
+                ).length;
+
+            const longRunPercentage =
+                plannedLongRuns > 0
+                    ? Math.round(
+                        (completedLongRuns /
+                            plannedLongRuns) * 100
+                    )
+                    : 0;
+
+            const longRunScore =
+                Math.round(
+                    (longRunPercentage / 100) * 25
+                );
+
+            //
+            // Consistency (15)
+            //
+
+            const activeWeeks =
+                new Set(
+                    pastActivities
+                        .filter(
+                            activity =>
+                                activity.completed === "Done"
+                        )
+                        .map(activity => {
+
+                            const date =
+                                parseLocalDate(
+                                    activity.date
+                                );
+
+                            const week =
+                                new Date(date);
+
+                            const day =
+                                week.getDay();
+
+                            const daysFromMonday =
+                                day === 0
+                                    ? 6
+                                    : day - 1;
+
+                            week.setDate(
+                                week.getDate() -
+                                daysFromMonday
+                            );
+
+                            return week
+                                .toISOString()
+                                .split("T")[0];
+
+                        })
+                ).size;
+
+            const totalWeeks =
+                new Set(
+                    pastActivities.map(activity => {
+
+                        const date =
+                            parseLocalDate(
+                                activity.date
+                            );
+
+                        const week =
+                            new Date(date);
+
+                        const day =
+                            week.getDay();
+
+                        const daysFromMonday =
+                            day === 0
+                                ? 6
+                                : day - 1;
+
+                        week.setDate(
+                            week.getDate() -
+                            daysFromMonday
+                        );
+
+                        return week
+                            .toISOString()
+                            .split("T")[0];
+
+                    })
+                ).size;
+
+            const consistencyPercentage =
+                totalWeeks > 0
+                    ? Math.round(
+                        (activeWeeks /
+                            totalWeeks) * 100
+                    )
+                    : 0;
+
+            const consistencyScore =
+                Math.round(
+                    (consistencyPercentage / 100) * 15
+                );
+
+            //
+            // Overall
+            //
+
+            const overallScore =
+                adherenceScore +
+                volumeScore +
+                longRunScore +
+                consistencyScore;
+
+            let status =
+                "Behind Plan";
+
+            if (overallScore >= 90) {
+
+                status = "Race Ready";
+
+            }
+            else if (overallScore >= 75) {
+
+                status = "On Track";
+
+            }
+            else if (overallScore >= 60) {
+
+                status = "Building Fitness";
+
+            }
+
+            return {
+
+                overallScore,
+
+                status,
+
+                adherence: {
+                    score: adherenceScore,
+                    maxScore: 30,
+                    percentage: adherencePercentage
+                },
+
+                volume: {
+                    score: volumeScore,
+                    maxScore: 30,
+                    targetKm,
+                    actualKm,
+                    percentage: volumePercentage
+                },
+
+                longRuns: {
+                    score: longRunScore,
+                    maxScore: 25,
+                    planned: plannedLongRuns,
+                    completed: completedLongRuns,
+                    percentage: longRunPercentage
+                },
+
+                consistency: {
+                    score: consistencyScore,
+                    maxScore: 15,
+                    activeWeeks,
+                    totalWeeks,
+                    percentage: consistencyPercentage
+                }
+
+            };
+
+        }
+        function collapseAllSections() {
+
+            document
+                .querySelectorAll(
+                    "details.collapsible"
+                )
+                .forEach(section => {
+                    section.open = false;
+                });
+
+            document
+                .getElementById("top")
+                .scrollIntoView({
+                    behavior: "smooth"
+                });
+        }
+        function importActivities() {
+
+            const file =
+                document.getElementById(
+                    "activityImport"
+                ).files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = function (e) {
+
+                try {
+
+                    const csv =
+                        e.target.result
+                            .replace(/^\uFEFF/, "");
+
+                    const rows =
+                        parseCsv(csv);
+
+                    if (rows.length < 2) {
+
+                        alert(
+                            "No activity data found."
+                        );
+
+                        return;
+                    }
+
+                    const headers =
+                        rows[0].map(
+                            h => h.trim()
+                        );
+
+                    const currentEvent =
+                        JSON.parse(
+                            localStorage.getItem(
+                                "currentEvent"
+                            )
+                        );
+
+                    if (!currentEvent) {
+
+                        alert(
+                            "Please create and save an event before importing activities."
+                        );
+
+                        return;
+                    }
+
+                    const importedActivities =
+                        rows
+                            .slice(1)
+                            .filter(
+                                row =>
+                                    row.some(
+                                        value => value.trim()
+                                    )
+                            )
+                            .map(values => {
+
+                                const activity = {};
+
+                                headers.forEach(
+                                    (
+                                        header,
+                                        index
+                                    ) => {
+
+                                        activity[
+                                            header
+                                        ] =
+                                            values[index]
+                                            || "";
+
+                                    }
+                                );
+
+                                return {
+
+                                    id:
+                                        Date.now() +
+                                        Math.random(),
+
+                                    eventId:
+                                        currentEvent.id,
+
+                                    date:
+                                        activity.date
+                                            ?.trim(),
+
+                                    type:
+                                        activity.type
+                                            ?.trim(),
+
+                                    targetDistance:
+                                        activity.targetDistance
+                                            ?.trim(),
+
+                                    completed:
+                                        activity.completed
+                                            ?.trim(),
+
+                                    actualDistance:
+                                        activity.actualDistance
+                                            ?.trim(),
+
+                                    comments:
+                                        activity.comments
+                                            ?.trim(),
+
+                                    detail:
+                                        activity.detail
+                                            ?.trim()
+
+                                };
+
+                            });
+
+                    const existingActivities =
+                        JSON.parse(
+                            localStorage.getItem(
+                                "activities"
+                            )
+                        ) || [];
+
+                    const allActivities =
+                        sortActivities([
+                            ...existingActivities,
+                            ...importedActivities
+                        ]);
+
+                    localStorage.setItem(
+                        "activities",
+                        JSON.stringify(
+                            allActivities
+                        )
+                    );
+
+                    displayActivities();
+                    displayWeeklyDashboard();
+                    displayAnalytics();
+
+                    document.getElementById(
+                        "historySection"
+                    ).open = true;
+
+                    setTimeout(() => {
+
+                        const todayCard =
+                            document.querySelector(
+                                '[data-today="true"]'
+                            );
+
+                        if (todayCard) {
+
+                            todayCard.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center"
+                            });
+
+                        }
+
+                    }, 100);
+
+                    alert(
+                        `${importedActivities.length} activities imported successfully.`
+                    );
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "Import Error:",
+                        error
+                    );
+
+                    alert(
+                        "Import failed. Please check the CSV format."
+                    );
+
+                }
+
+            };
+
+            reader.readAsText(file);
+
+        }
+        function interpolatePoint(start, end, ratio) {
+            return L.latLng(
+                start.lat + ((end.lat - start.lat) * ratio),
+                start.lng + ((end.lng - start.lng) * ratio)
+            );
+        }
+        function addRouteMarker(
+            map,
+            point,
+            label,
+            colour,
+            popupText
+        ) {
+            const isStart = label.includes("START");
+            const isFinish = label.includes("FINISH");
+            const horizontalPadding =
+                (isStart || isFinish) ? 36 : 28;
+            const estimatedWidth =
+                (label.length * 9) + horizontalPadding;
+            const markerWidth =
+                Math.max(80, estimatedWidth);
+            const markerHeight =
+                (isStart || isFinish) ? 50 : 42;
+            const marker = L.marker(point, {
+                icon: L.divIcon({
+                    className: "distance-marker",
+                    iconSize: [markerWidth, markerHeight],
+                    iconAnchor: [
+                        markerWidth / 2,
+                        markerHeight
+                    ],
+                    html: `
+<div style="
+display:flex;
+flex-direction:column;
+align-items:center;
+">
+<div style="
+background:${colour};
+color:white;
+padding:${(isStart || isFinish)
+                            ? "8px 18px"
+                            : "6px 14px"};
+border-radius:999px;
+font-size:${(isStart || isFinish)
+                            ? "15px"
+                            : "14px"};
+font-weight:700;
+border:2px solid white;
+white-space:nowrap;
+position:relative;
+box-shadow:${isStart
+                            ? "0 0 0 3px rgba(5,150,105,.20), 0 4px 12px rgba(0,0,0,.25)"
+                            : isFinish
+                                ? "0 0 0 3px rgba(202,138,4,.20), 0 4px 12px rgba(0,0,0,.25)"
+                                : "0 2px 6px rgba(0,0,0,.25)"
+                        };
+">
+${label}
+<div style="
+position:absolute;
+left:50%;
+bottom:-10px;
+transform:translateX(-50%);
+width:0;
+height:0;
+border-left:8px solid transparent;
+border-right:8px solid transparent;
+border-top:10px solid ${colour};
+">
+</div>
+</div>
+</div>
+`
+                })
+            }).addTo(map);
+            if (popupText) {
+                marker.bindPopup(popupText);
+            }
+            return marker;
+        }
+        function sortActivities(activities) {
+
+            const activityOrder = {
+                "Easy Run": 1,
+                "Recovery Run": 2,
+                "Tempo Run": 3,
+                "Race Pace Run": 4,
+                "Long Run": 5,
+                "Cross Train": 6,
+                "PT Gym Session": 7,
+                "Walk": 8,
+                "Walk/Recovery": 9,
+                "Rest": 10,
+                "RACE DAY": 11
+            };
+
+            return activities.sort((a, b) => {
+
+                const dateCompare =
+                    a.date.localeCompare(
+                        b.date
+                    );
+
+                if (dateCompare !== 0) {
+                    return dateCompare;
+                }
+
+                return (
+                    (activityOrder[a.type] || 999) -
+                    (activityOrder[b.type] || 999)
+                );
+
+            });
+
+        }
+        function archiveCurrentEvent() {
+
+            const event =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+
+            if (!event) {
+
+                alert(
+                    "Save Event Details first."
+                );
+
+                return;
+
+            }
+
+            const archiveItem = {
+                archiveDate:
+                    new Date().toISOString(),
+
+                event,
+
+                route:
+                    JSON.parse(
+                        localStorage.getItem(
+                            "eventRoute"
+                        )
+                    ),
+
+                activities:
+                    (
+                        JSON.parse(
+                            localStorage.getItem(
+                                "activities"
+                            )
+                        ) || []
+                    ).filter(
+                        activity =>
+                            activity.eventId ===
+                            event.id
+                    ),
+
+                raceOutcome:
+                    JSON.parse(
+                        localStorage.getItem(
+                            "raceOutcome"
+                        )
+                    ),
+
+                review:
+                    JSON.parse(
+                        localStorage.getItem(
+                            "postRaceReview"
+                        )
+                    )
+            };
+
+            let archive =
+                JSON.parse(
+                    localStorage.getItem(
+                        "eventArchive"
+                    )
+                ) || [];
+
+            archive.push(
+                archiveItem
+            );
+
+            localStorage.setItem(
+                "eventArchive",
+                JSON.stringify(
+                    archive
+                )
+            );
+
+            displayArchive();
+
+            alert(
+                "Event archived."
+            );
+
+        }
+        function timeToSeconds(timeString) {
+
+            if (!timeString) {
+
+                return Number.MAX_SAFE_INTEGER;
+
+            }
+
+            const parts =
+                timeString
+                    .split(":")
+                    .map(Number);
+
+            if (parts.length === 3) {
+
+                return (
+                    parts[0] * 3600 +
+                    parts[1] * 60 +
+                    parts[2]
+                );
+
+            }
+
+            return Number.MAX_SAFE_INTEGER;
+
+        }
+        function getPersonalBest() {
+            const archive =
+                JSON.parse(
+                    localStorage.getItem("eventArchive")
+                ) || [];
+
+            const completedEvents = archive.filter(
+                item =>
+                    item.raceOutcome?.completed === "Yes" &&
+                    item.raceOutcome?.officialTime
+            );
+
+            if (completedEvents.length === 0) {
+                return null;
+            }
+
+            let bestEvent = null;
+            let bestSeconds = Number.MAX_SAFE_INTEGER;
+
+            completedEvents.forEach(item => {
+                const seconds = timeToSeconds(
+                    item.raceOutcome.officialTime
+                );
+
+                if (seconds < bestSeconds) {
+                    bestSeconds = seconds;
+                    bestEvent = item;
+                }
+            });
+
+            return bestEvent;
+        }
+        function buildReadinessBar(
+            label,
+            percentage
+        ) {
+
+            const colour =
+                percentage >= 90 ? "#22c55e" :
+                    percentage >= 75 ? "#2563eb" :
+                        percentage >= 60 ? "#facc15" :
+                            "#f97316";
+
+            return `
+<div style="
+margin-bottom:10px;
+">
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:3px;
+font-size:0.85rem;
+font-weight:600;
+color:#334155;
+">
+<span>${label}</span>
+<span>${percentage}%</span>
+</div>
+<div style="
+width:100%;
+height:8px;
+background:#e5e7eb;
+border-radius:999px;
+overflow:hidden;
+">
+<div style="
+width:${percentage}%;
+height:100%;
+background:${colour};
+border-radius:999px;
+">
+</div>
+</div>
+</div>
+`;
+        }
+        function displayArchive() {
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+
+            const archive =
+                JSON.parse(
+                    localStorage.getItem(
+                        "eventArchive"
+                    )
+                ) || [];
+            const completedEvents =
+                archive.filter(
+                    item =>
+                        item.raceOutcome?.completed === "Yes" &&
+                        item.raceOutcome?.officialTime
+                );
+
+            let personalBestTime =
+                Number.MAX_SAFE_INTEGER;
+
+            completedEvents.forEach(
+                item => {
+
+                    const seconds =
+                        timeToSeconds(
+                            item.raceOutcome
+                                .officialTime
+                        );
+
+                    if (
+                        seconds <
+                        personalBestTime
+                    ) {
+
+                        personalBestTime =
+                            seconds;
+
+                    }
+
+                }
+            );
+            let html = "";
+
+            archive.forEach(
+                (item, index) => {
+                    const completed =
+                        item.raceOutcome?.completed;
+
+                    let resultStatus = "⚪ Unknown";
+                    let resultColor = "#666";
+                    if (completed === "Yes") {
+
+                        resultStatus = "✅ Finished";
+                        resultColor = "green";
+
+                    }
+                    else if (completed === "No") {
+
+                        resultStatus = "❌ DNF";
+                        resultColor = "red";
+
+                    }
+                    const archiveRunningTypes = [
+
+                        "Easy Run",
+                        "Long Run",
+                        "Race Pace Run",
+                        "Recovery Run",
+                        "Tempo Run",
+                        "RACE DAY"
+
+                    ];
+
+                    const runCount =
+                        (item.activities || []).filter(
+                            a =>
+                                archiveRunningTypes.includes(
+                                    a.type
+                                )
+                        ).length;
+
+                    const crossTrainCount =
+                        (item.activities || []).filter(
+                            a => a.type === "Cross Train"
+                        ).length;
+
+                    const ptGymCount =
+                        (item.activities || []).filter(
+                            a => a.type === "PT Gym Session"
+                        ).length;
+                    const isPersonalBest =
+                        item.raceOutcome?.completed === "Yes" &&
+                        timeToSeconds(
+                            item.raceOutcome?.officialTime
+                        ) === personalBestTime;
+                    const isActive =
+                        currentEvent &&
+                        item.event?.eventName ===
+                        currentEvent.eventName;
+                    html += `
+<div
+class="card"
+style="
+margin-bottom:15px;
+text-align:left;
+${isPersonalBest
+                            ? `
+border:3px solid gold;
+background:#fffef8;
+box-shadow:
+0 0 12px rgba(255,215,0,0.35);
+`
+                            : ""
+                        }
+"
+>
+<h3>
+${item.event?.eventName || "Unknown Event"}
+</h3>
+${isPersonalBest
+                            ? `
+<div
+<div
+style="
+flex:1;
+background:linear-gradient(
+135deg,
+#fffdf7,
+#ffffff
+);
+border:1px solid #fde68a;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+🏅 PERSONAL BEST
+</div>
+`
+                            : ""
+                        }
+<p>
+<strong>Type:</strong>
+${item.event?.marathonType || "-"}
+</p>
+ 
+<p>
+<strong>Date:</strong>
+${item.event?.eventDate || "-"}
+</p>
+ 
+<p>
+<strong>Goal Time:</strong>
+${item.event?.goalTime || "-"}
+</p>
+ 
+<p>
+<strong>Official Time:</strong>
+${item.raceOutcome?.officialTime || "-"}
+</p>
+<p>
+<strong>Status:</strong>
+<span style="color:${resultColor};">
+${resultStatus}
+</span>
+</p>
+<div
+class="dashboard"
+style="margin-top:10px;"
+>
+<div class="card">
+ 
+<div
+class="card-value"
+style="color:${resultColor};"
+>
+${resultStatus}
+</div>
+ 
+<div class="card-label">
+Result
+</div>
+ 
+</div>
+<div class="card">
+<div class="card-value">
+${runCount}
+</div>
+<div class="card-label">
+Runs
+</div>
+</div>
+ 
+<div class="card">
+<div class="card-value">
+${crossTrainCount}
+</div>
+<div class="card-label">
+Cross Train
+</div>
+</div>
+ 
+<div class="card">
+<div class="card-value">
+${ptGymCount}
+</div>
+<div class="card-label">
+PT Gym
+</div>
+</div>
+ 
+</div>
+ 
+<button
+onclick="viewArchive(${index})"
+>
+View Event
+</button>
+ 
+<button
+onclick="exportArchive(${index})"
+>
+Export Event
+</button>
+${isActive
+                            ? `
+<button disabled>
+Active Event
+</button>
+`
+                            : `
+<button
+onclick="deleteArchive(${index})"
+style="
+background:#d83b01;
+margin-top:5px;
+"
+>
+Delete Event
+</button>
+`
+                        }
+</div>
+ 
+`;
+
+                });
+
+            document.getElementById(
+                "archiveList"
+            ).innerHTML = html;
+
+        }
+        function displayReview() {
+
+            const review =
+                JSON.parse(
+                    localStorage.getItem(
+                        "postRaceReview"
+                    )
+                );
+
+            if (!review) {
+
+                return;
+
+            }
+
+            document.getElementById(
+                "whatWentWell"
+            ).value =
+                review.whatWentWell || "";
+
+            document.getElementById(
+                "whatWentBadly"
+            ).value =
+                review.whatWentBadly || "";
+
+            document.getElementById(
+                "lessonsLearned"
+            ).value =
+                review.lessonsLearned || "";
+
+            document.getElementById(
+                "futureImprovements"
+            ).value =
+                review.futureImprovements || "";
+
+            document.getElementById(
+                "reviewSummary"
+            ).innerHTML = `
+ 
+<div class="card">
+ 
+<div class="card-label">
+ 
+Post-race review completed
+ 
+</div>
+ 
+</div>
+ 
+`;
+
+        }
+        function clearActivities() {
+
+            const confirmed =
+                confirm(
+                    "Delete all activities?"
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
+            localStorage.removeItem(
+                "activities"
+            );
+
+            displayActivities();
+            displayWeeklyDashboard();
+
+        }
+        function saveReview() {
+
+            const review = {
+
+                whatWentWell:
+                    document.getElementById(
+                        "whatWentWell"
+                    ).value,
+
+                whatWentBadly:
+                    document.getElementById(
+                        "whatWentBadly"
+                    ).value,
+
+                lessonsLearned:
+                    document.getElementById(
+                        "lessonsLearned"
+                    ).value,
+
+                futureImprovements:
+                    document.getElementById(
+                        "futureImprovements"
+                    ).value
+
+            };
+
+            localStorage.setItem(
+                "postRaceReview",
+                JSON.stringify(review)
+            );
+
+            displayReview();
+
+            alert(
+                "Review saved."
+            );
+
+        }
+        function deleteActivity(id) {
+
+            if (
+                !confirm(
+                    "Delete this activity?"
+                )
+            ) {
+                return;
+            }
+
+            let activities =
+                JSON.parse(
+                    localStorage.getItem(
+                        "activities"
+                    )
+                ) || [];
+
+            activities =
+                activities.filter(
+                    a => a.id !== id
+                );
+
+            localStorage.setItem(
+                "activities",
+                JSON.stringify(activities)
+            );
+
+            displayActivities();
+            displayWeeklyDashboard();
+
+        }
+        function saveRaceOutcome() {
+
+            const raceOutcome = {
+
+                completed:
+                    document.getElementById(
+                        "raceCompleted"
+                    ).value,
+
+                officialTime:
+                    document.getElementById(
+                        "officialTime"
+                    ).value,
+
+                position:
+                    document.getElementById(
+                        "position"
+                    ).value,
+
+                fieldSize:
+                    document.getElementById(
+                        "fieldSize"
+                    ).value,
+
+                raceNotes:
+                    document.getElementById(
+                        "raceNotes"
+                    ).value
+
+            };
+
+            localStorage.setItem(
+                "raceOutcome",
+                JSON.stringify(
+                    raceOutcome
+                )
+            );
+
+            displayRaceOutcome();
+
+            alert(
+                "Race outcome saved."
+            );
+
+        }
+        function displayRaceOutcome() {
+
+            const raceOutcome =
+                JSON.parse(
+                    localStorage.getItem(
+                        "raceOutcome"
+                    )
+                );
+
+            if (!raceOutcome) {
+
+                return;
+
+            }
+
+            document.getElementById(
+                "raceCompleted"
+            ).value =
+                raceOutcome.completed || "Yes";
+
+            document.getElementById(
+                "officialTime"
+            ).value =
+                raceOutcome.officialTime || "";
+
+            document.getElementById(
+                "position"
+            ).value =
+                raceOutcome.position || "";
+
+            document.getElementById(
+                "fieldSize"
+            ).value =
+                raceOutcome.fieldSize || "";
+
+            document.getElementById(
+                "raceNotes"
+            ).value =
+                raceOutcome.raceNotes || "";
+
+            document.getElementById(
+                "raceSummary"
+            ).innerHTML = `
+ 
+<div class="card">
+ 
+<div class="card-value">
+${raceOutcome.officialTime || "-"}
+</div>
+ 
+<div class="card-label">
+Official Time
+</div>
+ 
+<br>
+ 
+Completed:
+${raceOutcome.completed}
+ 
+</div>
+ 
+`;
+
+        }
+        function displayWeeklyDashboard() {
+
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+
+            const activities =
+                (
+                    JSON.parse(
+                        localStorage.getItem(
+                            "activities"
+                        )
+                    ) || []
+                ).filter(
+                    activity =>
+                        activity.eventId ===
+                        currentEvent?.id
+                );
+
+            const runningTypes = [
+                "Easy Run",
+                "Long Run",
+                "Race Pace Run",
+                "Recovery Run",
+                "Tempo Run",
+                "RACE DAY"
+            ];
+
+            const now = new Date();
+
+            const endDate =
+                new Date(now);
+
+            endDate.setDate(
+                endDate.getDate() - 1
+            );
+
+            endDate.setHours(
+                23, 59, 59, 999
+            );
+
+            const startDate =
+                new Date(endDate);
+
+            startDate.setDate(
+                endDate.getDate() - 10
+            );
+
+            startDate.setHours(
+                0, 0, 0, 0
+            );
+
+            const periodStartLabel =
+                startDate.toLocaleDateString(
+                    "en-GB",
+                    {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric"
+                    }
+                );
+
+            const periodEndLabel =
+                endDate.toLocaleDateString(
+                    "en-GB",
+                    {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric"
+                    }
+                );
+
+            const recentActivities =
+                activities.filter(
+                    activity => {
+
+                        const activityDate =
+                            parseLocalDate(
+                                activity.date
+                            );
+
+                        return (
+                            activityDate >= startDate &&
+                            activityDate <= endDate
+                        );
+                    }
+                );
+
+            const runs =
+                recentActivities.filter(
+                    a =>
+                        runningTypes.includes(
+                            a.type
+                        )
+                );
+
+            const targetKm =
+                runs.reduce(
+                    (total, run) =>
+                        total +
+                        (
+                            parseFloat(
+                                run.targetDistance
+                            ) || 0
+                        ),
+                    0
+                );
+
+            const actualKm =
+                runs.reduce(
+                    (total, run) =>
+                        total +
+                        (
+                            parseFloat(
+                                run.actualDistance
+                            ) || 0
+                        ),
+                    0
+                );
+
+            const runDone =
+                recentActivities.filter(
+                    a =>
+                        runningTypes.includes(
+                            a.type
+                        ) &&
+                        a.completed === "Done"
+                ).length;
+
+            const runMissed =
+                recentActivities.filter(
+                    a =>
+                        runningTypes.includes(
+                            a.type
+                        ) &&
+                        a.completed === "Missed"
+                ).length;
+
+            const crossDone =
+                recentActivities.filter(
+                    a =>
+                        a.type === "Cross Train" &&
+                        a.completed === "Done"
+                ).length;
+
+            const crossMissed =
+                recentActivities.filter(
+                    a =>
+                        a.type === "Cross Train" &&
+                        a.completed === "Missed"
+                ).length;
+
+            const gymDone =
+                recentActivities.filter(
+                    a =>
+                        a.type === "PT Gym Session" &&
+                        a.completed === "Done"
+                ).length;
+
+            const gymMissed =
+                recentActivities.filter(
+                    a =>
+                        a.type === "PT Gym Session" &&
+                        a.completed === "Missed"
+                ).length;
+
+            const walkDone =
+                recentActivities.filter(
+                    a =>
+                        (
+                            a.type === "Walk" ||
+                            a.type === "Walk/Recovery"
+                        ) &&
+                        a.completed === "Done"
+                ).length;
+
+            const walkMissed =
+                recentActivities.filter(
+                    a =>
+                        (
+                            a.type === "Walk" ||
+                            a.type === "Walk/Recovery"
+                        ) &&
+                        a.completed === "Missed"
+                ).length;
+
+            document.getElementById(
+                "weeklyDashboard"
+            ).innerHTML = `
+<div
+style="
+font-weight:600;
+margin-bottom:15px;
+color:#475569;
+"
+>
+${periodStartLabel} to ${periodEndLabel}
+</div>
+<table
+style="
+width:100%;
+border-collapse:collapse;
+background:white;
+"
+>
+<thead>
+<tr>
+<th style="padding:8px;text-align:left;">
+Activity
+</th>
+<th style="padding:8px;text-align:center;">
+✅ Done
+</th>
+<th style="padding:8px;text-align:center;">
+❌ Missed
+</th>
+<th style="padding:8px;text-align:center;">
+🎯 Target km
+</th>
+<th style="padding:8px;text-align:center;">
+📏 Actual km
+</th>
+</tr>
+</thead>
+<tbody>
+<tr
+style="
+font-weight:bold;
+background:#f8fafc;
+"
+>
+<td style="padding:8px;">
+🏃 Running
+</td>
+<td style="text-align:center;">
+${runDone}
+</td>
+<td style="text-align:center;">
+${runMissed}
+</td>
+<td style="text-align:center;">
+${targetKm.toFixed(1)}
+</td>
+<td style="text-align:center;">
+${actualKm.toFixed(1)}
+</td>
+</tr>
+<tr>
+<td style="padding:8px;">
+🚴 Cross Train
+</td>
+<td style="text-align:center;">
+${crossDone}
+</td>
+<td style="text-align:center;">
+${crossMissed}
+</td>
+<td style="text-align:center;">
+-
+</td>
+<td style="text-align:center;">
+-
+</td>
+</tr>
+<tr>
+<td style="padding:8px;">
+💪 PT Gym
+</td>
+<td style="text-align:center;">
+${gymDone}
+</td>
+<td style="text-align:center;">
+${gymMissed}
+</td>
+<td style="text-align:center;">
+-
+</td>
+<td style="text-align:center;">
+-
+</td>
+</tr>
+<tr>
+<td style="padding:8px;">
+🚶 Walk
+</td>
+<td style="text-align:center;">
+${walkDone}
+</td>
+<td style="text-align:center;">
+${walkMissed}
+</td>
+<td style="text-align:center;">
+-
+</td>
+<td style="text-align:center;">
+-
+</td>
+</tr>
+</tbody>
+</table>
+`;
+        }
+        function renderCachedRoute(routeData) {
+
+            document.getElementById(
+                "routePreview"
+            ).innerHTML = `
+<div
+id="routeMap"
+style="
+height:400px;
+border:1px solid #ddd;
+border-radius:8px;
+overflow:hidden;
+"
+></div>
+<div
+id="routeLegend"
+style="
+margin-top:8px;
+padding:10px;
+border-top:1px solid #e5e7eb;
+"
+></div>
+`;
+
+            const map =
+                L.map("routeMap");
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    attribution:
+                        "&copy; OpenStreetMap contributors"
+                }
+            ).addTo(map);
+
+            const points =
+                routeData.points.map(
+                    p => L.latLng(p.lat, p.lng)
+                );
+
+            const routeLine =
+                L.polyline(points, {
+                    color: "#0000ff",
+                    weight: 4
+                }).addTo(map);
+
+            map.fitBounds(
+                routeLine.getBounds()
+            );
+
+            document.getElementById(
+                "routeLegend"
+            ).innerHTML = `
+<div style="
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:12px 20px;
+font-size:13px;
+font-weight:600;
+">
+<span>🟢 START</span>
+<span>🔵 Distance checkpoint</span>
+<span>🟩 Major checkpoint</span>
+<span>🟡 FINISH</span>
+</div>
+`;
+
+            addRouteMarker(
+                map,
+                points[0],
+                "🚩 START",
+                "#059669",
+                "Start of route"
+            );
+
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+
+            const checkpointInterval =
+                currentEvent?.marathonType ===
+                    "Ultra Marathon"
+                    ? 10
+                    : 5;
+
+            let accumulated = 0;
+            let nextCheckpoint =
+                checkpointInterval * 1000;
+
+            for (
+                let i = 1;
+                i < points.length;
+                i++
+            ) {
+
+                const segmentDistance =
+                    points[i - 1].distanceTo(
+                        points[i]
+                    );
+
+                while (
+                    accumulated +
+                    segmentDistance >=
+                    nextCheckpoint
+                ) {
+
+                    const ratio =
+                        (
+                            nextCheckpoint -
+                            accumulated
+                        ) /
+                        segmentDistance;
+
+                    const checkpointPoint =
+                        interpolatePoint(
+                            points[i - 1],
+                            points[i],
+                            ratio
+                        );
+
+                    const checkpointKm =
+                        nextCheckpoint / 1000;
+
+                    let colour =
+                        "#2563eb";
+
+                    if (
+                        checkpointKm % 20 === 0
+                    ) {
+                        colour =
+                            "#16a34a";
+                    }
+
+                    addRouteMarker(
+                        map,
+                        checkpointPoint,
+                        `${checkpointKm} km`,
+                        colour,
+                        `${checkpointKm} km checkpoint`
+                    );
+
+                    nextCheckpoint +=
+                        checkpointInterval *
+                        1000;
+                }
+
+                accumulated +=
+                    segmentDistance;
+            }
+
+            addRouteMarker(
+                map,
+                points[points.length - 1],
+                "🏁 FINISH",
+                "#ca8a04",
+                "Finish of route"
+            );
+
+            setTimeout(
+                () => map.invalidateSize(),
+                200
+            );
+        }
+        function displayCurrentEvent() {
+
+            const event =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+            const personalBest = getPersonalBest();
+                const activities =
+                (
+                    JSON.parse(
+                        localStorage.getItem(
+                            "activities"
+                        )
+                    ) || []
+                ).filter(
+                    activity =>
+                        activity.eventId ===
+                        event?.id
+                );
+            const runningTypes = [
+                "Easy Run",
+                "Long Run",
+                "Race Pace Run",
+                "Recovery Run",
+                "Tempo Run",
+                "RACE DAY"
+            ];
+            const completedRuns =
+                activities.filter(
+                    activity =>
+                        runningTypes.includes(
+                            activity.type
+                        ) &&
+                        activity.completed === "Done"
+                ).length;
+            const completedDistance =
+                activities.reduce(
+                    (total, activity) =>
+                        total +
+                        (
+                            parseFloat(
+                                activity.actualDistance
+                            ) || 0
+                        ),
+                    0
+                );
+            const doneCount =
+                activities.filter(
+                    activity =>
+                        activity.completed === "Done"
+                ).length;
+            const missedCount =
+                activities.filter(
+                    activity =>
+                        activity.completed === "Missed"
+                ).length;
+            const adherence =
+                (doneCount + missedCount) > 0
+                    ?
+                    Math.round(
+                        (
+                            doneCount /
+                            (
+                                doneCount +
+                                missedCount
+                            )
+                        ) * 100
+                    )
+                    :
+                    0;
+            let currentStreak = 0;
+            const completedDates =
+                activities
+                    .filter(
+                        activity =>
+                            activity.completed === "Done"
+                    )
+                    .map(
+                        activity => activity.date
+                    )
+                    .sort()
+                    .reverse();
+            for (
+                let i = 0;
+                i < completedDates.length;
+                i++
+            ) {
+                currentStreak++;
+            }
+            if (!event) {
+                document.getElementById(
+                    "currentEventSummary"
+                ).innerHTML = `
+<div class="current-event">
+📅 <strong>No active event</strong>
+<span style="color:#64748b;">
+Create one below
+</span>
+</div>
+`;
+                return;
+            }
+            const raceDay =
+                event.eventDate
+                    ? parseLocalDate(
+                        event.eventDate
+                    ).toLocaleDateString(
+                        "en-GB",
+                        {
+                            day: "numeric",
+                            month: "short"
+                        }
+                    )
+                    : "-";
+            let countdownText = "-";
+            if (event.eventDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const eventDate =
+                    parseLocalDate(
+                        event.eventDate
+                    );
+                eventDate.setHours(0, 0, 0, 0);
+                const daysRemaining = Math.round(
+                    (eventDate - today) /
+                    (1000 * 60 * 60 * 24)
+                );
+                if (daysRemaining === 0) {
+                    countdownText = "TODAY";
+                }
+                else if (daysRemaining === 1) {
+                    countdownText = "1 day";
+                }
+                else if (daysRemaining > 1) {
+                    countdownText = `${daysRemaining} days`;
+                }
+                else {
+                    countdownText = "Completed";
+                }
+            }
+            document.getElementById(
+                "currentEventSummary"
+            ).innerHTML = `
+<div class="current-event">
+<h2
+style="
+margin:0;
+padding:0;
+border:none;
+"
+>
+Current Event
+</h2>
+<p
+style="
+margin:8px 0 20px 0;
+font-size:1.4rem;
+font-weight:600;
+color:#0f172a;
+"
+>
+${event.eventName || "Unnamed Event"}
+</p>
+<div
+class="current-event-metrics"
+style="
+display:flex;
+gap:12px;
+margin-top:15px;
+"
+>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#2563eb;
+"
+>
+${countdownText}
+</div>
+<div style="color:#666;">
+Countdown
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#2563eb;
+"
+>
+${event.goalTime || "-"}
+</div>
+<div style="color:#666;">
+Goal Time
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#2563eb;
+"
+>
+${event.marathonType || "-"}
+</div>
+<div style="color:#666;">
+Event Type
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#2563eb;
+"
+>
+${raceDay || "-"}
+</div>
+<div style="color:#666;">
+Race Day
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#d97706;
+"
+>
+${personalBest
+? personalBest.raceOutcome.officialTime
+: "-"}
+</div>
+<div style="
+color:#92400e;
+font-weight:600;
+">
+🏅 Personal Best
+</div>
+${
+personalBest
+? `
+<div
+style="
+font-size:0.75rem;
+margin-top:6px;
+color:#64748b;
+"
+>
+${personalBest.event?.eventName}
+</div>
+`
+: ""
+}
+</div>
+</div>
+<div
+class="current-event-metrics"
+style="
+display:flex;
+gap:12px;
+margin-top:12px;
+"
+>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#2563eb;
+"
+>
+${completedRuns}
+</div>
+<div style="color:#666;">
+Runs Completed
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#2563eb;
+"
+>
+${completedDistance.toFixed(1)}
+</div>
+<div style="color:#666;">
+Distance (km)
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#16a34a;
+"
+>
+${adherence}%
+</div>
+<div style="color:#666;">
+Adherence
+</div>
+</div>
+<div
+style="
+flex:1;
+background:white;
+border-radius:16px;
+padding:20px;
+text-align:center;
+box-shadow:
+0 4px 12px rgba(0,0,0,0.08);
+"
+>
+<div
+style="
+font-size:1.6rem;
+font-weight:bold;
+color:#f97316;
+"
+>
+🔥 ${currentStreak}
+</div>
+<div style="color:#666;">
+Training Sessions
+</div>
+</div>
+</div>
+`;
+        }
+        function saveEvent() {
+
+            const existingEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+
+            const event = {
+                id:
+                    existingEvent?.id ||
+                    Date.now(),
+
+                eventName:
+                    document.getElementById(
+                        "eventName"
+                    ).value,
+
+                marathonType:
+                    document.getElementById(
+                        "marathonType"
+                    ).value,
+
+                eventDate:
+                    document.getElementById(
+                        "eventDate"
+                    ).value,
+
+                goalTime:
+                    document.getElementById(
+                        "goalTime"
+                    ).value,
+
+                websiteUrl:
+                    document.getElementById(
+                        "websiteUrl"
+                    ).value,
+
+                gpxUrl:
+                    document.getElementById(
+                        "gpxUrl"
+                    ).value
+            };
+
+            localStorage.setItem(
+                "currentEvent",
+                JSON.stringify(event)
+            );
+            displayCurrentEvent();
+            alert(
+                "Event saved successfully."
+            );
+
+        }
+        function toggleRunFields() {
+
+            const type =
+                document.getElementById(
+                    "workoutType"
+                ).value;
+
+            const runFields =
+                document.getElementById(
+                    "runFields"
+                );
+
+            const runningTypes = [
+
+                "Easy Run",
+                "Long Run",
+                "Race Pace Run",
+                "Recovery Run",
+                "Tempo Run",
+                "RACE DAY"
+
+            ];
+
+            runFields.style.display =
+                runningTypes.includes(type)
+                    ? "block"
+                    : "none";
+        }
+        function exportArchive(index) {
+
+            const archive =
+                JSON.parse(
+                    localStorage.getItem(
+                        "eventArchive"
+                    )
+                ) || [];
+
+            const event =
+                archive[index];
+
+            const json =
+                JSON.stringify(
+                    event,
+                    null,
+                    2
+                );
+
+            const blob =
+                new Blob(
+                    [json],
+                    {
+                        type:
+                            "application/json"
+                    }
+                );
+
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
+
+            const link =
+                document.createElement(
+                    "a"
+                );
+
+            link.href = url;
+
+            const fileName =
+                event.event.eventName
+                    .replaceAll(" ", "-");
+
+            link.download =
+                fileName + ".json";
+
+            document.body.appendChild(
+                link
+            );
+
+            link.click();
+
+            document.body.removeChild(
+                link
+            );
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        }
+        function deleteArchive(index) {
+
+            let archive =
+                JSON.parse(
+                    localStorage.getItem(
+                        "eventArchive"
+                    )
+                ) || [];
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+
+            if (
+                currentEvent &&
+                archive[index].event?.eventName ===
+                currentEvent.eventName
+            ) {
+
+                alert(
+                    "You cannot delete the active event."
+                );
+
+                return;
+
+            }
+            const confirmed =
+                confirm(
+                    `Delete archived event "${archive[index].event?.eventName}"?`
+                );
+
+            if (!confirmed) {
+
+                return;
+
+            }
+
+            archive.splice(index, 1);
+
+            localStorage.setItem(
+                "eventArchive",
+                JSON.stringify(archive)
+            );
+
+            document.getElementById(
+                "archiveDetail"
+            ).innerHTML = "";
+
+            displayArchive();
+
+        }
+        function saveActivity() {
+
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+            if (!currentEvent) {
+                alert(
+                    "Please create and save an Event first."
+                );
+                return;
+            }
+            let activities =
+                JSON.parse(
+                    localStorage.getItem(
+                        "activities"
+                    )
+                ) || [];
+
+            const activity = {
+
+                id:
+                    editingActivityId ||
+                    Date.now(),
+
+                eventId:
+                    currentEvent?.id,
+
+                date:
+                    document.getElementById(
+                        "activityDate"
+                    ).value,
+
+                type:
+                    document.getElementById(
+                        "workoutType"
+                    ).value,
+
+                detail:
+                    document.getElementById(
+                        "detail"
+                    ).value,
+
+                completed:
+                    document.getElementById(
+                        "completed"
+                    ).value,
+
+                targetDistance:
+                    document.getElementById(
+                        "targetDistance"
+                    ).value,
+
+                actualDistance:
+                    document.getElementById(
+                        "actualDistance"
+                    ).value,
+
+                comments:
+                    document.getElementById(
+                        "comments"
+                    ).value
+
+            };
+
+            const saveButton =
+                document.querySelector(
+                    'button[onclick="saveActivity()"]'
+                );
+
+            saveButton.textContent =
+                "Save Activity";
+
+            saveButton.style.background =
+                "#2563eb";
+
+            if (editingActivityId) {
+
+                activities =
+                    activities.map(a =>
+                        a.id === editingActivityId
+                            ? activity
+                            : a
+                    );
+
+            } else {
+
+                activities.push(
+                    activity
+                );
+
+            }
+
+            localStorage.setItem(
+                "activities",
+                JSON.stringify(
+                    activities
+                )
+            );
+
+            editingActivityId = null;
+
+            document.getElementById(
+                "activityForm"
+            ).reset();
+
+            toggleRunFields();
+
+            document.getElementById(
+                "cancelEditBtn"
+            ).style.display = "none";
+
+            displayActivities();
+            displayWeeklyDashboard();
+            document
+                .getElementById("historySection")
+                .open = true;
+
+            setTimeout(() => {
+
+                const todayCard =
+                    document.querySelector(
+                        '[data-today="true"]'
+                    );
+
+                if (todayCard) {
+
+                    todayCard.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+
+                }
+
+            }, 100);
+            originalActivitySnapshot = null;
+            alert(
+                "Activity saved."
+            );
+        }
+        function cancelEdit() {
+
+            if (
+                hasUnsavedActivityChanges()
+            ) {
+
+                const confirmed = confirm(
+                    "Discard unsaved changes?"
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+            }
+
+            const saveButton =
+                document.querySelector(
+                    'button[onclick="saveActivity()"]'
+                );
+
+            saveButton.textContent =
+                "Save Activity";
+
+            saveButton.style.background =
+                "#2563eb";
+
+            editingActivityId = null;
+
+            originalActivitySnapshot = null;
+
+            document.getElementById(
+                "activityForm"
+            ).reset();
+
+            toggleRunFields();
+
+            document.getElementById(
+                "cancelEditBtn"
+            ).style.display =
+                "none";
+
+        }
+        function getActivityFormSnapshot() {
+
+            return JSON.stringify({
+
+                date:
+                    document.getElementById(
+                        "activityDate"
+                    ).value,
+
+                type:
+                    document.getElementById(
+                        "workoutType"
+                    ).value,
+
+                detail:
+                    document.getElementById(
+                        "detail"
+                    ).value,
+
+                completed:
+                    document.getElementById(
+                        "completed"
+                    ).value,
+
+                targetDistance:
+                    document.getElementById(
+                        "targetDistance"
+                    ).value,
+
+                actualDistance:
+                    document.getElementById(
+                        "actualDistance"
+                    ).value,
+
+                comments:
+                    document.getElementById(
+                        "comments"
+                    ).value
+
+            });
+
+        }
+
+        function hasUnsavedActivityChanges() {
+
+            if (!originalActivitySnapshot) {
+                return false;
+            }
+
+            return (
+                getActivityFormSnapshot() !==
+                originalActivitySnapshot
+            );
+
+        }
+        function editActivity(id) {
+
+            if (
+                editingActivityId &&
+                hasUnsavedActivityChanges()
+            ) {
+
+                const confirmed = confirm(
+                    "You have unsaved changes. Discard them and continue?"
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+            }
+
+            lastEditedActivityId = id;
+
+            const activities =
+                JSON.parse(
+                    localStorage.getItem(
+                        "activities"
+                    )
+                ) || [];
+
+            const saveButton =
+                document.querySelector(
+                    'button[onclick="saveActivity()"]'
+                );
+
+            saveButton.textContent =
+                "Update Activity";
+
+            saveButton.style.background =
+                "#16a34a";
+
+            const activity =
+                activities.find(
+                    a => a.id === id
+                );
+
+            if (!activity) {
+                return;
+            }
+
+            document.getElementById(
+                "trainingSection"
+            ).open = true;
+
+            document.getElementById(
+                "activityDate"
+            ).value =
+                activity.date;
+
+            document.getElementById(
+                "workoutType"
+            ).value =
+                activity.type;
+
+            document.getElementById(
+                "detail"
+            ).value =
+                activity.detail || "";
+
+            document.getElementById(
+                "targetDistance"
+            ).value =
+                activity.targetDistance || "";
+
+            document.getElementById(
+                "actualDistance"
+            ).value =
+                activity.actualDistance || "";
+
+            document.getElementById(
+                "completed"
+            ).value =
+                activity.completed;
+
+            document.getElementById(
+                "comments"
+            ).value =
+                activity.comments || "";
+
+            toggleRunFields();
+
+            editingActivityId = id;
+
+            originalActivitySnapshot =
+                getActivityFormSnapshot();
+
+            document.getElementById(
+                "cancelEditBtn"
+            ).style.display =
+                "block";
+
+            document.getElementById(
+                "trainingSection"
+            ).open = true;
+
+            setTimeout(() => {
+
+                document.getElementById(
+                    "activityForm"
+                ).scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+
+            }, 100);
+
+        }
+        function importEvent() {
+
+            const file =
+                document.getElementById(
+                    "importFile"
+                ).files[0];
+
+            if (!file) {
+
+                alert(
+                    "Please select a JSON file."
+                );
+
+                return;
+
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload =
+                function (event) {
+
+                    try {
+
+                        const importedEvent =
+                            JSON.parse(
+                                event.target.result
+                            );
+
+                        let archive =
+                            JSON.parse(
+                                localStorage.getItem(
+                                    "eventArchive"
+                                )
+                            ) || [];
+
+                        archive.push(
+                            importedEvent
+                        );
+
+                        localStorage.setItem(
+                            "eventArchive",
+                            JSON.stringify(
+                                archive
+                            )
+                        );
+
+                        displayArchive();
+
+                        alert(
+                            "Event imported successfully."
+                        );
+
+                    }
+                    catch (error) {
+
+                        alert(
+                            "Invalid JSON file."
+                        );
+
+                        console.error(
+                            error
+                        );
+
+                    }
+
+                };
+
+            reader.readAsText(
+                file
+            );
+
+        }
+        function clearRoute() {
+
+            const confirmed = confirm(
+                "Remove the saved route?"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            localStorage.removeItem(
+                "eventRoute"
+            );
+
+            document.getElementById(
+                "routeGpxFile"
+            ).value = "";
+
+            document.getElementById(
+                "routePreview"
+            ).innerHTML = "";
+
+            alert(
+                "Route removed."
+            );
+        }
+        function displayRoute() {
+            const cachedRoute =
+                JSON.parse(
+                    localStorage.getItem(
+                        "eventRoute"
+                    )
+                );
+
+            if (
+                cachedRoute?.points?.length
+            ) {
+
+                renderCachedRoute(
+                    cachedRoute
+                );
+
+                return;
+            }
+            const fileInput =
+                document.getElementById(
+                    "routeGpxFile"
+                );
+
+            const file =
+                fileInput.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = function (e) {
+
+                document.getElementById(
+                    "routePreview"
+                ).innerHTML = `
+<div
+id="routeMap"
+style="
+height:400px;
+border:1px solid #ddd;
+border-radius:8px;
+overflow:hidden;
+"
+></div>
+ 
+<div
+id="routeLegend"
+style="
+display:none;
+margin-top:8px;
+padding:10px;
+border-top:1px solid #e5e7eb;
+"
+></div>
+`;
+
+                const map =
+                    L.map("routeMap");
+
+                L.tileLayer(
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    {
+                        attribution:
+                            "&copy; OpenStreetMap contributors"
+                    }
+                ).addTo(map);
+
+                const gpx = new L.GPX(
+                    e.target.result,
+                    {
+                        async: true,
+                        marker_options: {
+                            startIconUrl: null,
+                            endIconUrl: null,
+                            shadowUrl: null,
+                            wptIconUrls: {}
+                        }
+                    }
+                );
+
+                gpx.on("loaded", function (evt) {
+
+                    map.fitBounds(
+                        evt.target.getBounds()
+                    );
+
+                    const legend =
+                        document.getElementById(
+                            "routeLegend"
+                        );
+
+                    legend.innerHTML = `
+<div style="
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:12px 20px;
+font-size:13px;
+font-weight:600;
+">
+<span>🟢 START</span>
+<span>🔵 Distance checkpoint</span>
+<span>🟩 Major checkpoint</span>
+<span>🟡 FINISH</span>
+</div>
+`;
+                    legend.style.display =
+                        "block";
+                    let points = [];
+                    function extractLatLngs(layer) {
+                        if (!layer) {
+                            return;
+                        }
+                        if (
+                            typeof layer.getLatLngs ===
+                            "function"
+                        ) {
+                            const latlngs =
+                                layer.getLatLngs();
+                            if (
+                                Array.isArray(latlngs) &&
+                                latlngs.length &&
+                                latlngs[0].lat !==
+                                undefined
+                            ) {
+                                points = latlngs;
+                                return;
+                            }
+                            latlngs.forEach(
+                                extractLatLngs
+                            );
+                        }
+                        if (
+                            typeof layer.getLayers ===
+                            "function"
+                        ) {
+                            layer
+                                .getLayers()
+                                .forEach(
+                                    extractLatLngs
+                                );
+                        }
+                    }
+                    extractLatLngs(
+                        evt.target
+                    );
+                    if (points.length < 2) {
+                        return;
+                    }
+                    localStorage.setItem(
+                        "eventRoute",
+                        JSON.stringify({
+                            points: points.map(p => ({
+                                lat: p.lat,
+                                lng: p.lng
+                            }))
+                        })
+                    );
+                    addRouteMarker(
+                        map,
+                        points[0],
+                        "🚩 START",
+                        "#059669",
+                        "Start of route"
+                    );
+                    const currentEvent =
+                        JSON.parse(
+                            localStorage.getItem(
+                                "currentEvent"
+                            )
+                        );
+                    const checkpointInterval =
+                        currentEvent?.marathonType ===
+                            "Ultra Marathon"
+                            ? 10
+                            : 5;
+                    let accumulated = 0;
+                    let nextCheckpoint =
+                        checkpointInterval * 1000;
+                    for (
+                        let i = 1;
+                        i < points.length;
+                        i++
+                    ) {
+                        const segmentDistance =
+                            points[i - 1]
+                                .distanceTo(
+                                    points[i]
+                                );
+                        while (
+                            accumulated +
+                            segmentDistance >=
+                            nextCheckpoint
+                        ) {
+                            const ratio =
+                                (
+                                    nextCheckpoint -
+                                    accumulated
+                                ) /
+                                segmentDistance;
+                            const checkpointPoint =
+                                interpolatePoint(
+                                    points[i - 1],
+                                    points[i],
+                                    ratio
+                                );
+                            const checkpointKm =
+                                nextCheckpoint /
+                                1000;
+                            let background =
+                                "#2563eb";
+                            if (
+                                checkpointKm %
+                                20 === 0
+                            ) {
+                                background =
+                                    "#16a34a";
+                            }
+                            addRouteMarker(
+                                map,
+                                checkpointPoint,
+                                `${checkpointKm} km`,
+                                background,
+                                `${checkpointKm} km checkpoint`
+                            );
+                            nextCheckpoint +=
+                                checkpointInterval *
+                                1000;
+                        }
+                        accumulated +=
+                            segmentDistance;
+                    }
+                    addRouteMarker(
+                        map,
+                        points[
+                        points.length - 1
+                        ],
+                        "🏁 FINISH",
+                        "#ca8a04",
+                        "Finish of route"
+                    );
+                    setTimeout(
+                        () =>
+                            map.invalidateSize(),
+                        200
+                    );
+                });
+                gpx.addTo(map);
+            };
+            reader.readAsText(file);
+        }
+        function parseCsv(csv) {
+            const rows = [];
+            let row = [];
+            let field = "";
+            let inQuotes = false;
+            for (let i = 0; i < csv.length; i++) {
+                const char = csv[i];
+                const next = csv[i + 1];
+                if (char === '"') {
+                    if (
+                        inQuotes &&
+                        next === '"'
+                    ) {
+                        field += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                }
+                else if (
+                    char === "," &&
+                    !inQuotes
+                ) {
+                    row.push(field);
+                    field = "";
+                }
+                else if (
+                    (char === "\n" || char === "\r") &&
+                    !inQuotes
+                ) {
+                    if (
+                        char === "\r" &&
+                        next === "\n"
+                    ) {
+                        i++;
+                    }
+                    row.push(field);
+                    if (
+                        row.length > 1 ||
+                        row[0] !== ""
+                    ) {
+                        rows.push(row);
+                    }
+                    row = [];
+                    field = "";
+                }
+                else {
+                    field += char;
+                }
+            }
+            row.push(field);
+            if (
+                row.length > 1 ||
+                row[0] !== ""
+            ) {
+                rows.push(row);
+            }
+            return rows;
+        }
+        function displayActivities() {
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+            const allActivities =
+                JSON.parse(
+                    localStorage.getItem(
+                        "activities"
+                    )
+                ) || [];
+            const activities =
+                sortActivities(
+                    allActivities.filter(
+                        activity =>
+                            activity.eventId ===
+                            currentEvent?.id
+                    )
+                );
+            const activityLabel =
+                activities.length === 1
+                    ? "activity"
+                    : "activities";
+            const activityCountText =
+                `${activities.length} ${activityLabel}`;
+            document.getElementById(
+                "activityCount"
+            ).textContent =
+                `(${activityCountText})`;
+            const runningTypes = [
+                "Easy Run",
+                "Long Run",
+                "Race Pace Run",
+                "Recovery Run",
+                "Tempo Run",
+                "RACE DAY"
+            ];
+            let html = "";
+            activities.forEach(activity => {
+                const formattedDate =
+                    activity.date
+                        ? parseLocalDate(
+                            activity.date
+                        ).toLocaleDateString(
+                            "en-GB",
+                            {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric"
+                            }
+                        )
+                        : "-";
+                const now = new Date();
+                const today =
+                    `${now.getFullYear()}-${String(now.getMonth() + 1)
+                        .padStart(2, "0")
+                    }-${String(now.getDate())
+                        .padStart(2, "0")
+                    }`;
+                const isToday =
+                    activity.date ===
+                    getLocalDateString();
+                const isRun =
+                    runningTypes.includes(
+                        activity.type
+                    );
+                const cardShadow =
+                    isToday
+                        ? "0 0 0 3px #2563eb"
+                        : "none";
+                const status =
+                    activity.completed === "Done"
+                        ? "✅ Done"
+                        : activity.completed === "Missed"
+                            ? "❌ Missed"
+                            : "📅 Planned";
+                const cardBackground =
+                    activity.completed === "Done"
+                        ? "#ecfdf5"
+                        : activity.completed === "Missed"
+                            ? "#fff7ed"
+                            : "#ffffff";
+                const cardBorder =
+                    activity.completed === "Done"
+                        ? "#86efac"
+                        : activity.completed === "Missed"
+                            ? "#fdba74"
+                            : "#e5e7eb";
+                html += `
+<div
+id="activity-${activity.id}"
+data-today="${isToday}"
+style="
+background:${cardBackground};
+border:1px solid ${cardBorder};
+border-radius:8px;
+padding:6px 10px;
+margin-bottom:4px;
+box-shadow:${cardShadow};
+"
+>
+<div
+style="
+display:flex;
+flex-wrap:wrap;
+gap:4px;
+font-size:0.9rem;
+line-height:1.2;
+align-items:center;
+"
+>
+<button
+type="button"
+onclick="editActivity(${activity.id})"
+style="
+width:auto;
+padding:0;
+margin:0;
+border:none;
+background:none;
+color:#2563eb;
+font-weight:600;
+cursor:pointer;
+"
+>
+📅 ${formattedDate}
+</button>
+<span style="color:#94a3b8;">|</span>
+<span>${activityIcons[activity.type] || "📋"} ${activity.type}</span>
+${activity.detail
+                        ? `
+<span style="color:#94a3b8;">|</span>
+<span>📍 ${activity.detail}</span>
+`
+                        : ""
+                    }
+<span style="color:#94a3b8;">|</span>
+<span>${status}</span>
+${isRun
+                        ? `
+<span style="color:#94a3b8;">|</span>
+<span>🎯 ${activity.targetDistance || "-"} km</span>
+<span style="color:#94a3b8;">|</span>
+<span>📏 ${activity.actualDistance || "-"} km</span>
+`
+                        : ""
+                    }
+${activity.comments
+                        ? `
+<span style="color:#94a3b8;">|</span>
+<span style="color:#64748b;">
+📝 ${activity.comments}
+</span>
+`
+                        : ""
+                    }
+</div>
+</div>
+`;
+            });
+            document.getElementById(
+                "activityHistory"
+            ).innerHTML = html;
+        }
+        let adherenceChart;
+        let statusChart;
+        let distanceChart;
+        function displayAnalytics() {
+            console.log(
+                "Analytics loaded",
+                getCurrentActivities().length,
+                "activities"
+            );
+            renderAdherenceGauge();
+            renderStatusPieChart();
+            renderWeeklyDistanceChart();
+            displayReadinessScore();
+        }
+        function getCurrentActivities() {
+            const currentEvent =
+                JSON.parse(
+                    localStorage.getItem(
+                        "currentEvent"
+                    )
+                );
+            return (
+                JSON.parse(
+                    localStorage.getItem(
+                        "activities"
+                    )
+                ) || []
+            ).filter(
+                activity =>
+                    activity.eventId ===
+                    currentEvent?.id
+            );
+        }
+        function renderAdherenceGauge() {
+            const activities =
+                getCurrentActivities();
+            const done =
+                activities.filter(
+                    a => a.completed === "Done"
+                ).length;
+            const missed =
+                activities.filter(
+                    a => a.completed === "Missed"
+                ).length;
+            const adherence =
+                (done + missed) > 0
+                    ? Math.round(
+                        (done / (done + missed)) * 100
+                    )
+                    : 0;
+            document.getElementById(
+                "adherenceValue"
+            ).textContent =
+                `${adherence}%`;
+            if (adherenceChart) {
+                adherenceChart.destroy();
+            }
+            let colour = "#ef4444";
+            if (adherence >= 90) {
+                colour = "#22c55e";
+            }
+            else if (adherence >= 75) {
+                colour = "#facc15";
+            }
+            const ctx =
+                document.getElementById(
+                    "adherenceChart"
+                );
+            adherenceChart =
+                new Chart(ctx, {
+                    type: "doughnut",
+                    data: {
+                        labels: [
+                            "Adherence",
+                            "Remaining"
+                        ],
+                        datasets: [{
+                            data: [
+                                adherence,
+                                100 - adherence
+                            ],
+                            backgroundColor: [
+                                colour,
+                                "#e5e7eb"
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: "75%",
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+        }
+        function renderStatusPieChart() {
+            const activities =
+                getCurrentActivities();
+            const done =
+                activities.filter(
+                    activity =>
+                        activity.completed === "Done"
+                ).length;
+            const planned =
+                activities.filter(
+                    activity =>
+                        activity.completed === "Planned"
+                ).length;
+            const missed =
+                activities.filter(
+                    activity =>
+                        activity.completed === "Missed"
+                ).length;
+            document.getElementById(
+                "statusSummary"
+            ).innerHTML = `
+<div
+style="
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+font-weight:600;
+">
+<span style="color:#22c55e;">
+✅ ${done}
+</span>
+<span style="color:#3b82f6;">
+📅 ${planned}
+</span>
+<span style="color:#f97316;">
+❌ ${missed}
+</span>
+</div>
+`;
+            if (statusChart) {
+                statusChart.destroy();
+            }
+            statusChart =
+                new Chart(
+                    document.getElementById(
+                        "statusChart"
+                    ),
+                    {
+                        type: "pie",
+                        data: {
+                            labels: [
+                                "Done",
+                                "Planned",
+                                "Missed"
+                            ],
+                            datasets: [
+                                {
+                                    data: [
+                                        done,
+                                        planned,
+                                        missed
+                                    ],
+                                    backgroundColor: [
+                                        "#22c55e",
+                                        "#3b82f6",
+                                        "#f97316"
+                                    ],
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                );
+        }
+        function renderWeeklyDistanceChart() {
+            const activities =
+                getCurrentActivities();
+            const runningTypes = [
+                "Easy Run",
+                "Long Run",
+                "Race Pace Run",
+                "Recovery Run",
+                "Tempo Run",
+                "RACE DAY"
+            ];
+            const weeklyData = {};
+            activities.forEach(activity => {
+                if (
+                    !runningTypes.includes(activity.type)
+                ) {
+                    return;
+                }
+                if (!activity.date) {
+                    return;
+                }
+                const date =
+                    parseLocalDate(activity.date);
+                const weekStart =
+                    new Date(date);
+                const day =
+                    weekStart.getDay(); // Sun=0, Mon=1, ... Sat=6
+                const daysFromMonday =
+                    day === 0 ? 6 : day - 1;
+                weekStart.setDate(
+                    weekStart.getDate() -
+                    daysFromMonday
+                );
+                weekStart.setHours(0, 0, 0, 0);
+                const key =
+                    weekStart
+                        .toISOString()
+                        .split("T")[0];
+                if (!weeklyData[key]) {
+                    weeklyData[key] = {
+                        target: 0,
+                        actual: 0
+                    };
+                }
+                weeklyData[key].target +=
+                    parseFloat(
+                        activity.targetDistance
+                    ) || 0;
+                weeklyData[key].actual +=
+                    parseFloat(
+                        activity.actualDistance
+                    ) || 0;
+            });
+            const weeks =
+                Object.keys(weeklyData)
+                    .sort();
+            const labels =
+                weeks.map(week =>
+                    `W/C ${new Date(week)
+                        .toLocaleDateString(
+                            "en-GB",
+                            {
+                                day: "numeric",
+                                month: "short"
+                            }
+                        )}`
+                );
+            const targetData =
+                weeks.map(
+                    week =>
+                        weeklyData[week].target
+                );
+            const actualData =
+                weeks.map(
+                    week =>
+                        weeklyData[week].actual
+                );
+            if (distanceChart) {
+                distanceChart.destroy();
+            }
+            distanceChart =
+                new Chart(
+                    document.getElementById(
+                        "distanceChart"
+                    ),
+                    {
+                        type: "bar",
+                        data: {
+                            labels,
+                            datasets: [
+                                {
+                                    label: "Target km",
+                                    data: targetData,
+                                    backgroundColor:
+                                        "#93c5fd"
+                                },
+                                {
+                                    label: "Actual km",
+                                    data: actualData,
+                                    backgroundColor:
+                                        "#2563eb"
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: "bottom"
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    }
+                );
+        }
+        window.addEventListener(
+            "beforeunload",
+            function (event) {
+                if (
+                    hasUnsavedActivityChanges()
+                ) {
+                    event.preventDefault();
+                    event.returnValue = "";
+                }
+            }
+        );
+        toggleRunFields();
+        displayActivities();
+        displayWeeklyDashboard();
+        displayRoute();
+        displayRaceOutcome();
+        displayReview();
+        displayArchive();
+        displayCurrentEvent();
+        displayAnalytics();
+    </script>
+</body>
+
+</html>
