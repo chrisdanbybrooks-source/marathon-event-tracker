@@ -1,0 +1,50 @@
+{
+  "name": "Marathon Event Manager",
+  "short_name": "Marathon Manager",
+  "description": "Plan, train, race and review marathon and ultra marathon events.",
+
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+
+  "display": "standalone",
+  "orientation": "portrait-primary",
+
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+
+  "categories": [
+    "sports",
+    "health",
+    "productivity"
+  ],
+
+  "screenshots": [
+    {
+      "src": "./screenshots/dashboard.png",
+      "sizes": "1472x1048",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Current Event Dashboard"
+    },
+    {
+      "src": "./screenshots/activities.png",
+      "sizes": "1472x1048",
+      "type": "image/png",
+      "label": "Training Activities"
+    }
+  ]
+}
